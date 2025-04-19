@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+  redis:
+    image: redis:7
+  auth:
+    build:
+      context: ../auth
+      dockerfile: Dockerfile
+    command: uv run uvicorn auth.main:app --reload --host 0.0.0.0 --port 8000
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/postgres
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ../auth:/app/auth
+      - type: bind
+        source: ./secrets/auth_private_key.pem
+        target: /run/secrets/auth_private_key.pem
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    command: uv run python main.py
+    environment:
+      - AUTH_JWKS_URL=http://auth:8000/.well-known/jwks.json
+      - REDIS_URL=redis://redis:6379/0
+    depends_on: [auth]
+
+volumes:
+  pgdata:
