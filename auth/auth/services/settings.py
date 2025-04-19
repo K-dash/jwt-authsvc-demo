@@ -4,6 +4,7 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
+    """アプリケーションの設定"""
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres"
     redis_url: str = "redis://localhost:6379/0"
 
