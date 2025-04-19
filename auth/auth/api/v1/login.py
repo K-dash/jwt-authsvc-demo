@@ -17,6 +17,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 @router.post("/login", response_model=Token)
 async def login(data: LoginRequest, resp: Response, session: AsyncSession = Depends(get_session)) -> Token:
+    """ログインエンドポイント"""
     q = await session.execute(sa.select(User).where(User.email == data.email))
     user: User | None = q.scalar_one_or_none()
     if user is None or not pwd_context.verify(data.password, user.pw_hash):
