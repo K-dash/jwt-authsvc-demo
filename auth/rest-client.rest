@@ -1,0 +1,21 @@
+### Login
+# @name login
+POST http://localhost:8000/v1/login
+Content-Type: application/json
+
+{
+    "email": "alice@example.com",
+    "password": "Pa55w0rd!"
+}
+
+###
+@rt = {{login.response.headers.Set-Cookie}}
+
+### Refresh
+# 古いRTを渡すとエラーになる
+POST http://localhost:8000/v1/token/refresh
+Cookie: {{rt}}
+
+### Logout
+POST http://localhost:8000/v1/logout
+Cookie: {{rt}}

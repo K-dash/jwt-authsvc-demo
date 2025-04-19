@@ -12,13 +12,15 @@ ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_DOWNLOADS=never
 
-COPY ./pyproject.toml ./uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=./uv.lock,target=./uv.lock \
-    --mount=type=bind,source=./pyproject.toml,target=./pyproject.toml \
+    --mount=type=bind,source=auth/uv.lock,target=./uv.lock \
+    --mount=type=bind,source=auth/pyproject.toml,target=./pyproject.toml \
     uv sync --frozen --no-install-project --no-dev
 
-COPY auth app/auth
+COPY auth/auth app/auth
+
+COPY infra/scripts /app/infra/scripts
+RUN chmod +x /app/infra/scripts/migrate.bash
 
 ENV PATH="/app/auth/.venv/bin:$PATH"
 

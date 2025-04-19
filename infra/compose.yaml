@@ -2,14 +2,40 @@ services:
   postgres:
     image: postgres:15
     environment:
+      POSTGRES_DB:     postgres
+      POSTGRES_USER:   postgres
       POSTGRES_PASSWORD: postgres
-    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+
   redis:
     image: redis:7
+    ports:
+      - 6379:6379
+
+  auth-migrate:
+    build:
+      context: ../
+      dockerfile: auth/Dockerfile
+    command: ["/app/infra/scripts/migrate.bash"]
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/postgres
+    volumes:
+      - ../auth:/app/auth
+    depends_on:
+      - postgres
+
   auth:
     build:
-      context: ../auth
-      dockerfile: Dockerfile
+      context: ../
+      dockerfile: auth/Dockerfile
     command: uv run uvicorn auth.main:app --reload --host 0.0.0.0 --port 8000
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/postgres
@@ -19,10 +45,13 @@ services:
       - type: bind
         source: ./secrets/auth_private_key.pem
         target: /run/secrets/auth_private_key.pem
+    ports:
+      - 8000:8000
+
   backend:
     build:
-      context: ../backend
-      dockerfile: Dockerfile
+      context: ../
+      dockerfile: backend/Dockerfile
     command: uv run python main.py
     environment:
       - AUTH_JWKS_URL=http://auth:8000/.well-known/jwks.json
